@@ -1,0 +1,47 @@
+# include <iostream>
+using namespace std;
+
+int main() {
+  cout << "SIMPLE CALCULATOR WITH BASIC ARITHMETIC OPERATIONS!"
+         << endl;
+  char op;
+  float int1, int2;
+
+  cout << "Enter the operator for calculation: +, -, *, /: ";
+  cin >> op;
+
+  cout << "Enter the first operand: ";
+  cin >> int1;
+  cout<<"Enter the second operand: ";
+  cin>> int2;
+
+  switch(op) {
+
+    case '+':
+      cout<<"You have chosen ADDITION operation!"<<endl;
+      cout << int1 << " + " << int2 << " = " << int1 + int2;
+      break;
+
+    case '-':
+      cout<<"You have chosen SUBTRACTION operation!"<<endl;
+      cout << int1 << " - " << int2 << " = " << int1 - int2;
+      break;
+
+    case '*':
+     cout<<"You have chosen MULTIPLICATION operation!"<<endl;
+      cout << int1 << " * " << int2 << " = " << int1 * int2;
+      break;
+
+    case '/':
+      cout<<"You have chosen DIVISION operation!"<<endl;
+      cout << int1 << " / " << int2 << " = " << int1 / int2;
+      break;
+
+    default:
+      // If the operator is other than +, -, * or /, error message is shown
+      cout << "Error! operator not found";
+      break;
+  }
+
+  return 0;
+}
