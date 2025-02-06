@@ -1,0 +1,218 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <ctime>
+
+using namespace std;
+
+struct Book {
+    string title, author, ISBN;
+    bool isAvailable = true;
+    
+    Book(string t, string a, string i) {
+        title = t;
+        author = a;
+        ISBN = i;
+        isAvailable = true;
+    }
+};
+
+struct Borrower {
+    string name;
+    string borrowedISBN;
+    time_t dueDate; // Due date in seconds since epoch
+
+    Borrower(string n, string isbn, int daysToReturn) {
+        name = n;
+        borrowedISBN = isbn;
+        time_t now = time(0);
+        dueDate = now + (daysToReturn * 86400); // Convert days to seconds
+    }
+};
+
+vector<Book> books;
+vector<Borrower> borrowers;
+
+void saveBooksToFile() {
+    ofstream file("books.txt");
+    for (auto &book : books) {
+        file << book.title << "," << book.author << "," << book.ISBN << "," << book.isAvailable << endl;
+    }
+    file.close();
+}
+
+void loadBooksFromFile() {
+    ifstream file("books.txt");
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string title, author, ISBN, availability;
+        getline(ss, title, ',');
+        getline(ss, author, ',');
+        getline(ss, ISBN, ',');
+        getline(ss, availability, ',');
+        Book book(title, author, ISBN);
+        book.isAvailable = (availability == "1");
+        books.push_back(book);
+    }
+    file.close();
+}
+
+void saveBorrowersToFile() {
+    ofstream file("borrowers.txt");
+    for (auto &borrower : borrowers) {
+        file << borrower.name << "," << borrower.borrowedISBN << "," << borrower.dueDate << endl;
+    }
+    file.close();
+}
+
+void loadBorrowersFromFile() {
+    ifstream file("borrowers.txt");
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string name, ISBN, dueDateStr;
+        getline(ss, name, ',');
+        getline(ss, ISBN, ',');
+        getline(ss, dueDateStr, ',');
+        time_t dueDate = stoll(dueDateStr);
+        borrowers.push_back(Borrower(name, ISBN, 0));
+        borrowers.back().dueDate = dueDate;
+    }
+    file.close();
+}
+
+void addBook() {
+    string title, author, ISBN;
+    cout << "Enter book title: ";
+    cin.ignore();
+    getline(cin, title);
+    cout << "Enter author: ";
+    getline(cin, author);
+    cout << "Enter ISBN: ";
+    cin >> ISBN;
+    
+    books.push_back(Book(title, author, ISBN));
+    saveBooksToFile();
+    cout << "Book added successfully!\n";
+}
+
+void searchBook() {
+    string query;
+    cout << "Enter title, author, or ISBN to search: ";
+    cin.ignore();
+    getline(cin, query);
+    
+    bool found = false;
+    for (auto &book : books) {
+        if (book.title == query || book.author == query || book.ISBN == query) {
+            cout << "Found Book - Title: " << book.title << ", Author: " << book.author << ", ISBN: " << book.ISBN
+                 << ", Available: " << (book.isAvailable ? "Yes" : "No") << endl;
+            found = true;
+        }
+    }
+    if (!found) cout << "Book not found.\n";
+}
+
+void checkoutBook() {
+    string ISBN, borrowerName;
+    cout << "Enter ISBN of book to checkout: ";
+    cin >> ISBN;
+    cout << "Enter borrower's name: ";
+    cin.ignore();
+    getline(cin, borrowerName);
+
+    for (auto &book : books) {
+        if (book.ISBN == ISBN && book.isAvailable) {
+            book.isAvailable = false;
+            borrowers.push_back(Borrower(borrowerName, ISBN, 14)); // 14 days return time
+            saveBooksToFile();
+            saveBorrowersToFile();
+            cout << "Book checked out successfully!\n";
+            return;
+        }
+    }
+    cout << "Book not available or not found.\n";
+}
+
+void returnBook() {
+    string ISBN;
+    cout << "Enter ISBN of book to return: ";
+    cin >> ISBN;
+
+    for (size_t i = 0; i < borrowers.size(); i++) {
+        if (borrowers[i].borrowedISBN == ISBN) {
+            time_t now = time(0);
+            double daysLate = difftime(now, borrowers[i].dueDate) / 86400;
+            double fine = (daysLate > 0) ? daysLate * 1.0 : 0; // $1 per overdue day
+            
+            cout << "Book returned. ";
+            if (fine > 0) {
+                cout << "Overdue! Fine: $" << fine << endl;
+            } else {
+                cout << "No fine.\n";
+            }
+
+            for (auto &book : books) {
+                if (book.ISBN == ISBN) {
+                    book.isAvailable = true;
+                    break;
+                }
+            }
+            borrowers.erase(borrowers.begin() + i);
+            saveBooksToFile();
+            saveBorrowersToFile();
+            return;
+        }
+    }
+    cout << "No record of this book being borrowed.\n";
+}
+
+void displayBooks() {
+    cout << "Library Books:\n";
+    for (auto &book : books) {
+        cout << "Title: " << book.title << ", Author: " << book.author << ", ISBN: " << book.ISBN
+             << ", Available: " << (book.isAvailable ? "Yes" : "No") << endl;
+    }
+}
+
+void displayBorrowers() {
+    cout << "Borrower Records:\n";
+    for (auto &borrower : borrowers) {
+        cout << "Name: " << borrower.name << ", Book ISBN: " << borrower.borrowedISBN
+             << ", Due Date: " << ctime(&borrower.dueDate);
+    }
+}
+
+int main() {
+    loadBooksFromFile();
+    loadBorrowersFromFile();
+    
+    int choice;
+    while (true) {
+        cout << "\nLibrary Management System\n";
+        cout << "1. Add Book\n";
+        cout << "2. Search Book\n";
+        cout << "3. Checkout Book\n";
+        cout << "4. Return Book\n";
+        cout << "5. Display Books\n";
+        cout << "6. Display Borrowers\n";
+        cout << "7. Exit\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: addBook(); break;
+            case 2: searchBook(); break;
+            case 3: checkoutBook(); break;
+            case 4: returnBook(); break;
+            case 5: displayBooks(); break;
+            case 6: displayBorrowers(); break;
+            case 7: exit(0);
+            default: cout << "Invalid choice! Try again.\n";
+        }
+    }
+
+    return 0;
+}
